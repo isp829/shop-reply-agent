@@ -56,3 +56,28 @@ def test_policy_search_finds_relevant_articles():
     ids = [a.id for a in search("다른 색상으로 교환하고 싶어요", "교환")]
     assert ids[0].startswith("EXCHANGE")
     assert "CS-1" in ids
+
+
+def test_format_seconds_handles_missing_values():
+    from jinja2 import Undefined
+
+    from app.metrics import format_seconds
+
+    assert format_seconds(None) == "-"
+    assert format_seconds(Undefined()) == "-"
+    assert format_seconds(62) == "1분 02초"
+    assert format_seconds("45.4") == "45초"
+
+
+def test_table_entity_without_optional_fields_is_filled():
+    from app.storage import TableRepository
+
+    record = TableRepository._from_entity({
+        "PartitionKey": "a" * 32, "RowKey": "b" * 12, "order_number": "ORD-1007",
+        "created_at": "2026-10-27T03:34:15+00:00", "checks": "[]",
+    })
+    assert record["handling_seconds"] is None
+    assert record["decided_at"] is None
+    assert record["screening"] == {}
+    assert record["evidence"] == []
+    assert record["status"] == "초안"

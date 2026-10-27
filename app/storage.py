@@ -19,6 +19,23 @@ logger = logging.getLogger(__name__)
 
 MAX_FIELD_CHARS = 30_000
 JSON_FIELDS = ("screening", "citations", "checks", "evidence")
+# Table Storage는 None 값을 저장하지 않으므로, 불러올 때 빠진 항목을 기본값으로 채운다
+RECORD_DEFAULTS: dict[str, Any] = {
+    "decided_at": None,
+    "handling_seconds": None,
+    "ai_seconds": None,
+    "reply_final": "",
+    "reply_draft": "",
+    "refund_reason": "",
+    "summary": "",
+    "investigation": "",
+    "inquiry_masked": "",
+    "status": "초안",
+    "refund_status": "없음",
+    "needs_refund": False,
+    "category": "기타",
+    "anger": 3,
+}
 
 
 def utcnow() -> datetime:
@@ -237,7 +254,8 @@ class TableRepository:
 
     @staticmethod
     def _from_entity(entity: dict[str, Any]) -> dict[str, Any]:
-        record = {k: v for k, v in entity.items() if k not in ("PartitionKey", "RowKey")}
+        record = dict(RECORD_DEFAULTS)
+        record.update({k: v for k, v in entity.items() if k not in ("PartitionKey", "RowKey")})
         record["session_id"] = entity["PartitionKey"]
         record["id"] = entity["RowKey"]
         for key in JSON_FIELDS:
@@ -246,7 +264,9 @@ class TableRepository:
                 try:
                     record[key] = json.loads(raw)
                 except json.JSONDecodeError:
-                    record[key] = {} if key == "screening" else []
+                    record[key] = None
+            if not isinstance(record.get(key), (dict, list)):
+                record[key] = {} if key == "screening" else []
         return record
 
     def save_inquiry(self, record: dict[str, Any]) -> None:

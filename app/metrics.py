@@ -19,10 +19,14 @@ def _reduction(baseline: float, value: float | None) -> float | None:
     return round((1 - value / baseline) * 100, 1)
 
 
-def format_seconds(value: float | None) -> str:
-    if value is None:
+def format_seconds(value: object) -> str:
+    """초를 'N분 NN초'로 바꾼다. 값이 없거나 숫자가 아니면 '-'."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         return "-"
-    total = int(round(value))
+    try:
+        total = int(round(float(value)))
+    except ValueError:
+        return "-"
     minutes, seconds = divmod(total, 60)
     return f"{minutes}분 {seconds:02d}초" if minutes else f"{seconds}초"
 
