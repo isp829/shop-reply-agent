@@ -1,0 +1,13 @@
+agent-framework-core==1.23.0
+agent-framework-github-copilot==2.1.0
+agent-framework-orchestrations==1.4.0
+github-copilot-sdk==1.0.26
+fastapi==0.162.0
+uvicorn==0.54.0
+gunicorn==23.0.0
+jinja2==3.1.6
+python-multipart==0.0.32
+azure-identity==1.27.0
+azure-keyvault-secrets==4.11.3
+azure-data-tables==12.7.0
+azure-monitor-opentelemetry==1.8.11

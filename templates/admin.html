@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}관리 - 문의 응대 에이전트{% endblock %}
+{% block content %}
+<h1>관리</h1>
+<section class="card">
+  <h2>전체 데모 데이터 정리</h2>
+  <p>모든 브라우저의 문의 기록과 주문 상태 변경을 지웁니다. 자기 브라우저 데이터만 지우려면 <a href="/history">내 문의</a> 화면의 초기화 버튼을 쓰세요.</p>
+  {% if message %}<p class="alert success" role="status">{{ message }}</p>{% endif %}
+  {% if error %}<p class="alert error" role="alert">{{ error }}</p>{% endif %}
+  {% if enabled %}
+  <form method="post" action="/admin">
+    <label for="password">관리자 비밀번호</label>
+    <input id="password" name="password" type="password" required autocomplete="current-password">
+    <button type="submit" class="button primary">전체 정리</button>
+  </form>
+  {% else %}
+  <p class="alert info">관리자 비밀번호가 설정되지 않아 이 기능을 쓸 수 없습니다.</p>
+  {% endif %}
+</section>
+{% endblock %}

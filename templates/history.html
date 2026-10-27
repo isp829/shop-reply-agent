@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}내 문의 - 문의 응대 에이전트{% endblock %}
+{% block content %}
+<h1>내 문의</h1>
+<p class="lead">불만도가 높은 문의부터 보여 줍니다.</p>
+
+<nav aria-label="상태 필터">
+  <ul class="filters">
+    {% for f in filters %}
+    <li><a class="chip" href="/history?status={{ f|urlencode }}" {% if f == status %}aria-current="true"{% endif %}>{{ f }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>
+
+{% if items %}
+<div class="table-wrap">
+  <table>
+    <caption class="visually-hidden">내 문의 목록</caption>
+    <thead>
+      <tr><th scope="col">접수</th><th scope="col">주문번호</th><th scope="col">유형</th><th scope="col">불만도</th><th scope="col">상태</th><th scope="col">환불</th><th scope="col">요약</th></tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.created_at|kst }}</td>
+        <td><a href="/inquiries/{{ item.id }}">{{ item.order_number }}</a></td>
+        <td>{{ item.category }}</td>
+        <td><span class="badge anger anger-{{ item.anger }}">{{ item.anger }}/5</span></td>
+        <td>{{ item.status }}</td>
+        <td>{{ item.refund_status }}</td>
+        <td>{{ item.summary or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="card">{% if status == '전체' %}아직 문의가 없습니다. <a href="/">새 문의</a>에서 예시 문의로 시작해 보세요.{% else %}'{{ status }}' 상태인 문의가 없습니다.{% endif %}</p>
+{% endif %}
+
+<form method="post" action="/demo/reset" class="reset-form">
+  <button type="submit" class="button secondary">이 브라우저의 데모 데이터 초기화</button>
+</form>
+{% endblock %}

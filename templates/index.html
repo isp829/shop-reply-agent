@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>고객 문의 답장 초안 만들기</h1>
+<p class="lead">주문번호와 고객 문의를 넣으면 에이전트가 주문·정책·이전 문의를 직접 확인하고, 근거가 붙은 답장 초안을 만듭니다.</p>
+
+<p class="notice">공개 데모입니다. 입력한 문의는 이 브라우저에서만 보이고 {{ retention }}시간 뒤 지워집니다. 실제 고객의 이름이나 연락처는 넣지 마세요. 한 시간에 최대 {{ limit }}건까지 시험할 수 있습니다.</p>
+
+<div class="layout">
+  <section class="card" aria-labelledby="form-title">
+    <h2 id="form-title">문의 입력</h2>
+    {% if error %}<p class="alert error" role="alert">{{ error }}</p>{% endif %}
+
+    <div class="examples">
+      <p id="examples-label">예시 문의로 시작하기</p>
+      <div class="example-buttons" role="group" aria-labelledby="examples-label">
+        {% for ex in examples %}
+        <button type="button" class="chip example" data-order="{{ ex.order }}" data-text="{{ ex.text }}">{{ ex.label }} · {{ ex.order }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <form id="inquiry-form" action="/inquiries" method="post">
+      <label for="order-number">주문번호</label>
+      <input id="order-number" name="order_number" value="{{ form.order_number or '' }}" placeholder="ORD-1003"
+             required pattern="[Oo][Rr][Dd]-\d{4}" autocomplete="off" aria-describedby="order-help order-preview">
+      <p id="order-help" class="hint">샘플 주문번호 ORD-1001 ~ ORD-1020</p>
+      <div id="order-preview" class="order-preview" aria-live="polite"></div>
+
+      <label for="inquiry-text">고객 문의 내용</label>
+      <textarea id="inquiry-text" name="inquiry" rows="5" maxlength="2000" required
+                aria-describedby="inquiry-help">{{ form.inquiry or '' }}</textarea>
+      <p id="inquiry-help" class="hint">2,000자 이내. 전화번호·이메일·카드번호는 자동으로 가려진 뒤 AI에 전달됩니다.</p>
+
+      <button id="submit-button" type="submit" class="button primary">답장 초안 만들기</button>
+      <p id="busy-text" class="hint" hidden>처리 중입니다. 보통 1~2분 걸립니다.</p>
+    </form>
+  </section>
+
+  <section class="card progress-card" aria-labelledby="progress-title">
+    <h2 id="progress-title">진행 상황</h2>
+    <ol id="steps" class="steps">
+      <li data-step="screening" data-state="waiting"><span class="step-state">대기</span> 사전 점검 <span class="step-desc">개인정보 가림, 지시문 탐지</span></li>
+      <li data-step="triage" data-state="waiting"><span class="step-state">대기</span> 분류 <span class="step-desc">유형·불만도 판단</span></li>
+      <li data-step="investigator" data-state="waiting"><span class="step-state">대기</span> 조사 <span class="step-desc">주문·정책·이전 문의 조회</span></li>
+      <li data-step="writer" data-state="waiting"><span class="step-state">대기</span> 답장 작성 <span class="step-desc">확인된 사실로만 작성</span></li>
+      <li data-step="verify" data-state="waiting"><span class="step-state">대기</span> 근거 검증 <span class="step-desc">문장별 근거 대조</span></li>
+    </ol>
+    <h3 class="small-heading">에이전트가 호출한 도구</h3>
+    <ul id="tools" class="tool-list"><li class="muted">아직 없음</li></ul>
+    <ul id="warnings" class="warning-list"></ul>
+    <h3 class="small-heading">답장 작성 중</h3>
+    <div id="draft" class="draft-stream" aria-live="polite" aria-atomic="false">문의를 보내면 여기에 답장이 작성되는 과정이 나타납니다.</div>
+    <p id="stream-error" class="alert error" role="alert" hidden></p>
+  </section>
+</div>
+
+{% if recent %}
+<section class="card" aria-labelledby="recent-title">
+  <h2 id="recent-title">최근 내 문의</h2>
+  <ul class="recent-list">
+    {% for item in recent %}
+    <li><a href="/inquiries/{{ item.id }}">{{ item.created_at|kst }} · {{ item.order_number }} · {{ item.category }} · {{ item.summary or item.inquiry_masked[:40] }}</a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

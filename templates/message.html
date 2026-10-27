@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - 문의 응대 에이전트{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  <p><a class="button" href="/">새 문의 작성</a> <a class="button secondary" href="/history">내 문의 목록</a></p>
+</section>
+{% endblock %}

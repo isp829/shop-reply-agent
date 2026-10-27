@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}쇼핑몰 문의 응대 에이전트{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="/">문의 응대 에이전트</a>
+      <nav aria-label="주 메뉴">
+        <ul class="nav">
+          <li><a href="/" {% if active == 'new' %}aria-current="page"{% endif %}>새 문의</a></li>
+          <li><a href="/history" {% if active == 'history' %}aria-current="page"{% endif %}>내 문의</a></li>
+          <li><a href="/dashboard" {% if active == 'dashboard' %}aria-current="page"{% endif %}>생산성</a></li>
+          <li><a href="/about" {% if active == 'about' %}aria-current="page"{% endif %}>작동 방식</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <main id="main" class="wrap" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>AI가 만든 초안은 운영자가 확인한 뒤 사용합니다. 환불은 운영자가 승인해야 처리됩니다.</p>
+      <p class="muted">공개 데모입니다. 입력한 내용은 이 브라우저에서만 보이고 24시간 뒤 지워집니다.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{{ item.order_number }} 문의 - 문의 응대 에이전트{% endblock %}
+{% block content %}
+{% set has_unsupported = counts.unsupported > 0 %}
+<p><a href="/history">← 내 문의 목록</a></p>
+<h1>{{ item.order_number }} 문의</h1>
+
+<div class="badges">
+  <span class="badge category">유형: {{ item.category }}</span>
+  <span class="badge anger anger-{{ item.anger }}">불만도 {{ item.anger }}/5</span>
+  <span class="badge status">상태: {{ item.status }}</span>
+  {% if item.refund_status != '없음' %}<span class="badge refund">환불: {{ item.refund_status }}</span>{% endif %}
+</div>
+
+{% if error %}<p class="alert error" role="alert">{{ error }}</p>{% endif %}
+
+{% if item.screening.injection_signals %}
+<div class="alert warning" role="note">
+  <strong>보안 점검 경고</strong>
+  <p>고객 문의에 지시문으로 보이는 표현이 있어 데이터로만 처리했습니다: {{ item.screening.injection_signals|join(', ') }}</p>
+  <p>AI는 환불을 직접 실행할 수 없으며, 환불은 아래에서 운영자가 승인해야 처리됩니다.</p>
+</div>
+{% endif %}
+{% if item.screening.pii_found %}
+<p class="alert info">개인정보({{ item.screening.pii_found|join(', ') }})를 가린 뒤 AI에 전달하고 저장했습니다.</p>
+{% endif %}
+
+<div class="layout">
+  <section class="card" aria-labelledby="inquiry-title">
+    <h2 id="inquiry-title">고객 문의</h2>
+    <blockquote class="inquiry-text">{{ item.inquiry_masked }}</blockquote>
+    <p class="muted">요약: {{ item.summary or '-' }}</p>
+    {% if order %}
+    <dl class="order-summary">
+      <dt>상품</dt><dd>{{ order.product_name }} ({{ order.option }})</dd>
+      <dt>금액</dt><dd>{{ '{:,}'.format(order.amount) }}원</dd>
+      <dt>주문일</dt><dd>{{ order.order_date }}</dd>
+      <dt>배송 상태</dt><dd>{{ order.shipping_status }}{% if order.delivered_date %} ({{ order.delivered_date }} 완료){% endif %}</dd>
+      <dt>고객</dt><dd>{{ order.customer_name|mask_name }} · {{ order.phone|mask_phone }}</dd>
+    </dl>
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="reply-title">
+    <h2 id="reply-title">답장 초안 <span class="ai-label">AI가 작성한 초안</span></h2>
+    {% if item.status == '확정' %}
+    <p class="alert success">확정된 답장입니다.</p>
+    <div class="final-reply">{{ item.reply_final }}</div>
+    {% else %}
+    <form method="post" action="/inquiries/{{ item.id }}/confirm">
+      <label for="reply">답장 (직접 고칠 수 있습니다)</label>
+      <textarea id="reply" name="reply" rows="10" maxlength="4000" required>{{ item.reply_draft }}</textarea>
+      {% if has_unsupported %}
+      <p class="checkbox-row">
+        <input type="checkbox" id="acknowledged" name="acknowledged" value="yes">
+        <label for="acknowledged">근거 없음으로 표시된 문장을 확인했습니다</label>
+      </p>
+      {% endif %}
+      <button type="submit" class="button primary">답장 확정</button>
+      <p class="hint">확정하면 고친 답장을 다시 검증합니다. 실제 발송은 하지 않고 기록만 남깁니다.</p>
+    </form>
+    {% endif %}
+  </section>
+</div>
+
+{% if item.refund_status == '환불 대기' %}
+<section class="card refund-box" aria-labelledby="refund-title">
+  <h2 id="refund-title">환불 승인 필요</h2>
+  <p>AI가 환불을 제안했습니다. 운영자가 승인해야 주문이 환불완료로 바뀝니다.</p>
+  <p><strong>제안 사유:</strong> {{ item.refund_reason or '사유 없음' }}</p>
+  {% if order %}<p><strong>환불 대상:</strong> {{ order.product_name }} · {{ '{:,}'.format(order.amount) }}원 · 현재 {{ order.shipping_status }}</p>{% endif %}
+  <div class="button-row">
+    <form method="post" action="/inquiries/{{ item.id }}/refund/approve"><button type="submit" class="button primary">환불 승인</button></form>
+    <form method="post" action="/inquiries/{{ item.id }}/refund/reject"><button type="submit" class="button secondary">반려</button></form>
+  </div>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="checks-title">
+  <h2 id="checks-title">문장별 근거 검증</h2>
+  <p class="muted">근거 있음 {{ counts.supported }} · 근거 없음 {{ counts.unsupported }} · 일반 문장 {{ counts.general }}</p>
+  <ul class="checks">
+    {% for check in item.checks %}
+    <li class="check {{ check.status }}">
+      {% if check.status == 'supported' %}<span class="check-label">✓ 근거 있음</span>
+      {% elif check.status == 'unsupported' %}<span class="check-label">⚠ 근거 없음</span>
+      {% else %}<span class="check-label">· 일반 문장</span>{% endif %}
+      <span class="check-sentence">{{ check.sentence }}</span>
+      {% if check.facts %}<span class="check-facts">확인한 사실: {{ check.facts|join(', ') }}</span>{% endif %}
+      {% for reason in check.reasons %}<span class="check-reason">{{ reason }}</span>{% endfor %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if item.citations %}
+  <details>
+    <summary>AI가 단 문장별 출처 보기</summary>
+    <ul class="citations">
+      {% for c in item.citations %}<li>{{ c.sentence }} <span class="muted">[{{ (c.evidence or [])|join(', ') }}]</span></li>{% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</section>
+
+<section class="card" aria-labelledby="evidence-title">
+  <h2 id="evidence-title">에이전트가 조회한 근거</h2>
+  {% for ev in item.evidence %}
+  <details>
+    <summary>{{ {'get_order': '주문 조회', 'search_policy': '정책 검색', 'get_inquiry_history': '이전 문의 조회'}.get(ev.tool, ev.tool) }}</summary>
+    <pre class="evidence">{{ ev.text }}</pre>
+  </details>
+  {% else %}
+  <p class="muted">조회 기록이 없습니다.</p>
+  {% endfor %}
+  {% if item.investigation %}
+  <details>
+    <summary>조사 에이전트가 정리한 사실</summary>
+    <pre class="evidence">{{ item.investigation }}</pre>
+  </details>
+  {% endif %}
+</section>
+
+<section class="card" aria-labelledby="timeline-title">
+  <h2 id="timeline-title">처리 기록</h2>
+  <dl class="order-summary">
+    <dt>접수</dt><dd>{{ item.created_at|kst }}</dd>
+    <dt>AI 처리 시간</dt><dd>{{ item.ai_seconds|seconds }}</dd>
+    <dt>결정</dt><dd>{{ item.decided_at|kst }}</dd>
+    <dt>전체 처리 시간</dt><dd>{{ item.handling_seconds|seconds }}</dd>
+  </dl>
+</section>
+{% endblock %}
